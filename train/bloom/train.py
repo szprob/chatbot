@@ -4,12 +4,7 @@ Created on 20230109
 @author: sz
 
 """
-
-import argparse
-import importlib as imp
-
-# from apex.parallel import DistributedDataParallel as DDP
-# from apex import amp
+import json
 import os
 
 import dataset
@@ -19,35 +14,34 @@ import torch
 import torch.distributed as dist
 import trainer
 from torch import nn
-from transformers import BartForConditionalGeneration, BertTokenizer
+from transformers import BloomForCausalLM, BloomTokenizerFast
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     # ddp setting
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--nodes", default=1, type=int, metavar="N")
-    parser.add_argument(
-        "-g", "--gpus", default=3, type=int, help="number of gpus per node"
-    )
-    parser.add_argument(
-        "-nr", "--nr", default=0, type=int, help="ranking within the nodes"
-    )
-
     local_rank = int(os.environ["LOCAL_RANK"])
     dist.init_process_group(backend="nccl")
 
     torch.cuda.set_device(local_rank)
     device = torch.device("cuda", local_rank)
 
-    tok = BertTokenizer.from_pretrained("fnlp/bart-base-chinese")
+    model_config = json.load(open("config/model_config.json"))
+    tokenizer = BloomTokenizerFast.from_pretrained(model_config["model_name_or_path"])
+    tokenizer.pad_token_id = model_config["pad_token_id"]
+    tokenizer.padding_side = model_config["padding_side"]
 
     # dataset
-    imp.reload(dataset)
-    data_set = dataset.DataSet(tokenizer=tok)
-    trainloader = data_set.make_dataloader(batch_size=32)
+    # data_path = model_config["data_path"]
+    data_path = "/data/home/ze.song/data/corpus/dialogue"
+    data_set = dataset.DataSet(
+        config=model_config, tokenizer=tokenizer, data_path=data_path
+    )
+    trainloader = data_set.make_dataloader(batch_size=3)
 
     # model
-    model = BartForConditionalGeneration.from_pretrained("fnlp/bart-base-chinese")
+    model = BloomForCausalLM.from_pretrained(
+        "bigscience/bloom-1b1",
+    )
     print("Total Parameters:", sum([p.nelement() for p in model.parameters()]))
 
     model.to(device)
@@ -62,10 +56,10 @@ if __name__ == "__main__":
     t = trainer.Trainer(
         device=device,
         train_loader=trainloader,
-        opt_freq=8,
+        opt_freq=32,
     )
     # t.optim.n_current_steps=148000
-    t.train(model=model, file_path="/data/home/ze.song/models/chatbot", max_num=1e6)
+    t.train(model=model, file_path="/data/home/ze.song/models/tmp", max_num=1e6)
 
 
 #     model.load_state_dict(

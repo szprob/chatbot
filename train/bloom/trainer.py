@@ -16,7 +16,7 @@ def save_file(f, path):
     file.close()
 
 
-def _rule(epoch, warmup_steps=1000, down_steps=1e6):
+def _rule(epoch, warmup_steps=10, down_steps=1e6):
     if down_steps < 10 * warmup_steps:
         down_steps = 10 * warmup_steps
     if epoch < warmup_steps:
@@ -24,9 +24,9 @@ def _rule(epoch, warmup_steps=1000, down_steps=1e6):
     elif epoch < 2 * warmup_steps:
         lamda = 8 - 7 * (epoch - warmup_steps) / warmup_steps
     elif epoch < down_steps:
-        lamda = 1.4 - (epoch - 2 * warmup_steps) / down_steps
+        lamda = 1.2 - (epoch - 2 * warmup_steps) / down_steps
     else:
-        lamda = 0.4
+        lamda = 0.2
     return lamda
 
 
@@ -35,7 +35,7 @@ class Trainer:
         self,
         train_loader,
         log_freq: int = 100,
-        save_freq: int = 3000,
+        save_freq: int = 20000,
         opt_freq=1,
         device="cuda:0",
     ):
@@ -69,12 +69,11 @@ class Trainer:
             self.save((iter_num + 0), file_path, model)
 
     def train(self, model, file_path="/data/home/ze.song/models/sa", max_num=1e6):
-        # self.loss_fct = CoralLoss()
         self.opt = torch.optim.AdamW(
-            model.parameters(), lr=1e-4, betas=(0.9, 0.999), weight_decay=0.001
+            model.parameters(), lr=2e-5, betas=(0.9, 0.999), weight_decay=0.0001
         )
 
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.opt, lr_lambda=_rule)
+        # self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.opt, lr_lambda=_rule)
 
         self.iteration(
             model,
@@ -96,14 +95,20 @@ class Trainer:
             if iter_num > max_num:
                 print("training finished!")
                 break
-            data = [d.to(self.device) for d in data]
-            out2, out3, out5 = model(data[0], data[2], data[4])
-            loss2 = self.loss_fct(out2, data[1].view(-1, 1))
-            loss3 = self.loss_fct(out3, data[3])
-            loss5 = self.loss_fct(out5, data[5])
-            loss = 0.7 * loss2 + 0.4 * loss3 + loss5
-            loss = loss / self.opt_freq
+            input_ids = data["input_ids"]
 
+            attention_mask = data["attention_mask"]
+            labels = data["labels"]
+            # print(input_ids.shape)
+            # print(attention_mask.shape)
+            # print(label_ids.shape)
+            outputs = model(
+                input_ids=input_ids.to(self.device),
+                attention_mask=attention_mask.to(self.device),
+                labels=labels.to(self.device),
+            )
+            loss = outputs[0]
+            loss = loss / self.opt_freq
             loss.backward()
             loss_num = loss.item()
 
@@ -112,13 +117,13 @@ class Trainer:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 2)
                 self.opt.step()
                 self.opt.zero_grad()
-                self.scheduler.step()
+                # self.scheduler.step()
 
             if self.device.index == 0:
                 self.log_save(iter_num, loss_num, file_path, model)
             iter_num += 1
 
-    def save(self, step, file_path="/data/home/ze.song/models/gpt", model=None):
+    def save(self, step, file_path=".", model=None):
         """
         Saving the current BERT model on file_path
         :param epoch: current epoch number

@@ -1,6 +1,6 @@
 # chatbot
 
-中英文聊天机器人.
+中文聊天机器人.
 
 交互的demo部署到了huggingface:
 https://huggingface.co/spaces/szzzzz/chatbot
@@ -21,18 +21,14 @@ pip install git+https://github.com/szprob/chatbot.git
 
 ## 模型
 
-模型backbone是roberta.
-
-分类头有三个,分别是2分类(1:正向,0:负向),3分类(2:正,1:中,0:负),5分类(0-4分别对应1星-5星).
+因为bloom的多语言支持较好,本模型主要微调了bloom.
 
 
 预训练模型全部开源,可以直接下载,也可以直接在代码中读取远端模型.
 
-16m参数模型:
+1b7模型:
 
-百度云地址：链接：https://pan.baidu.com/s/1tzcY98JuQ75XoPzjzLQGnA 提取码：qewg
-
-huggingface : https://huggingface.co/szzzzz/sentiment_classifier_sentence_level_bert_16m
+huggingface : https://huggingface.co/szzzzz/chatbot_bloom_1b7
 
 
 ## 数据集
@@ -55,45 +51,51 @@ huggingface : https://huggingface.co/szzzzz/sentiment_classifier_sentence_level_
 
 8. esconv.1,300条英文对话,提供不同主题. https://github.com/thu-coai/Emotional-Support-Conversation
 
-9. chatgpt生成语料,可以参考https://github.com/LianjiaTech/BELLE
 
-10. 其它
+chatgpt生成语料:
+
+1. belle .  可以参考https://github.com/LianjiaTech/BELLE
+
+2. alpaca . https://github.com/tloen/alpaca-lora
+
+3. gpt4all . https://github.com/Instruction-Tuning-with-GPT-4/GPT-4-LLM#data-release
+
+4. 其它
 
 
 ## 使用
 
-文本目前只做了英文,只使用了5个类别的分类头.
+使用gradio搭建机器人的详细代码见examples/gradio_demo.py
 
-使用方法如下:
+简单使用方法如下:
 
 ```python
-from sentiment_classification import SentimentClassifier
+from chatbot import Bot
 
-model = SentimentClassifier()
+model = Bot()
 
 # 如果模型down到了本地
 model.load(model_path)
 # 也可以直接使用远端
-model.load('szzzzz/sentiment_classifier_sentence_level_bert_16m')
+model.load('szzzzz/chatbot_bloom_1b7')
 
 # 模型预测
-result = model.rank("I like it.")
+inputs = "Human : 你好啊! \nnAssistant: "
+response = model.generate(inputs)
 '''
-result
-4.79
+response
+你好,我是你的ai助手
 '''
-
-result = model.rank("I hate it.")
-'''
-result
-2.42
-'''
-
-star = round(model.rank("I hate it."))
-'''
-star
-2
-'''
-
 
 ```
+
+
+## 训练
+
+提供了基于deepspeed的微调. 训练方式可以按照如下三步:
+
+1. 在大规模语料上训练模型基座,可以直接使用开源的基座,如bloom.
+
+2. 在对话格式的语料上微调模型,可以在chatgpt或者其他领域内开源对话语料上微调.
+
+3. 如果只是想训练一个能开放对话的chatbot,第二步已经可以满足.如果想做针对性训练,有条件可以训练RL模型做调整,没有条件可以在领域内的少量数据上做最后的微调.

@@ -5,7 +5,6 @@ Created on 20230109
 
 """
 
-import argparse
 import json
 
 # from apex.parallel import DistributedDataParallel as DDP
@@ -28,21 +27,11 @@ from peft import (
 from transformers import BloomForCausalLM, BloomTokenizerFast
 
 if __name__ == "__main__":
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
-    # ddp setting
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model_config_file", default="config/model_config.json", type=str
-    )
-    parser.add_argument("--deepspeed", default="config/deepspeed_config.json", type=str)
-    parser.add_argument(
-        "--use_lora", action="store_true", default=False, help="Use lora"
-    )
-    parser.add_argument(
-        "--lora_hyperparams_file", default="config/lora_hyperparams.json", type=str
-    )
-    parser.add_argument("--local_rank", type=int)
-    args = parser.parse_args()
+    torch.cuda.device_count()
+    torch.backends.cudnn.is_available()
+    torch.backends.cudnn.version()
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
+    # torch.cuda.set_device(3)
 
     # ddp
     device_map = "auto"
@@ -53,15 +42,13 @@ if __name__ == "__main__":
         device_map = {"": local_rank}
 
     # model
-    model_config = json.load(open(args.model_config_file))
+    model_config = json.load(open("config/model_config.json"))
     if local_rank == 0:
         logger = get_logger("train", model_config["output_dir"])
-        logger.info(f"args.__dict__ : {args.__dict__}")
         for key, value in model_config.items():
             logger.info(f"{key} : {value}")
 
     # load_in_8bit
-    load_in_8bit = True if args.use_lora else False
 
     tokenizer = BloomTokenizerFast.from_pretrained(model_config["model_name_or_path"])
     tokenizer.pad_token_id = model_config["pad_token_id"]
@@ -70,7 +57,8 @@ if __name__ == "__main__":
     model = BloomForCausalLM.from_pretrained(
         model_config["model_name_or_path"],
         device_map=device_map,
-        load_in_8bit=load_in_8bit,
+        torch_dtype=torch.float16,
+        load_in_8bit=True,
     )
 
     data_path = model_config["data_path"]
@@ -80,21 +68,18 @@ if __name__ == "__main__":
     )
 
     # lora
-    if args.use_lora:
-        model = prepare_model_for_int8_training(model)
-        lora_hyperparams = json.load(open(args.lora_hyperparams_file))
-        for key, value in lora_hyperparams.items():
-            logger.info("{} : {}".format(key, value))
-        lora_config = LoraConfig(
-            r=lora_hyperparams["lora_r"],
-            lora_alpha=lora_hyperparams["lora_alpha"],
-            target_modules=lora_hyperparams["lora_target_modules"],
-            lora_dropout=lora_hyperparams["lora_dropout"],
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
-        print(lora_config)
-        model = get_peft_model(model, lora_config)
+    model = prepare_model_for_int8_training(model)
+
+    lora_config = LoraConfig(
+        r=8,
+        lora_alpha=16,
+        target_modules=["query_key_value"],
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    print(lora_config)
+    model = get_peft_model(model, lora_config)
 
     # trainer
     training_args = transformers.TrainingArguments(
@@ -115,7 +100,7 @@ if __name__ == "__main__":
         save_total_limit=5,
         load_best_model_at_end=False,
         ddp_find_unused_parameters=False if ddp else None,
-        deepspeed=args.deepspeed if not args.use_lora else None,
+        deepspeed=None,
         group_by_length=False,
     )
 
@@ -129,11 +114,10 @@ if __name__ == "__main__":
     )
 
     model.config.use_cache = False
-    if args.use_lora:
-        old_state_dict = model.state_dict
-        model.state_dict = (
-            lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
-        ).__get__(model, type(model))
+    old_state_dict = model.state_dict
+    model.state_dict = (
+        lambda self, *_, **__: get_peft_model_state_dict(self, old_state_dict())
+    ).__get__(model, type(model))
 
     if torch.__version__ >= "2" and sys.platform != "win32":
         model = torch.compile(model)
