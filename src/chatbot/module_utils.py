@@ -5,9 +5,9 @@ import tempfile
 from abc import abstractmethod
 from typing import Dict, Optional, Union
 
-from huggingface_hub import snapshot_download
+import huggingface_hub
 
-TEMP_PATH = "/tmp/.sentiment_classification"
+TEMP_PATH = "/tmp/.chatbot"
 
 
 class PreTrainedModule:
@@ -33,7 +33,7 @@ class PreTrainedModule:
         self._tmpdir = tempfile.TemporaryDirectory(prefix=f"{TEMP_PATH}/")
 
     @abstractmethod
-    def load(self, model: Union[str, Dict]) -> None:
+    def load(self, model: Union[str, Dict], low_disk_usage: bool = False) -> None:
         """Load  state dict from local model path.
 
         Args:
@@ -69,9 +69,25 @@ class PreTrainedModule:
         tar.extractall(path=dir)
         tar.close()
 
-    def download(self, repo_id: str, cache_dir: Optional[str] = None) -> str:
+    def download(
+        self,
+        repo_id: str,
+        cache_dir: Optional[str] = None,
+        low_disk_usage: bool = False,
+    ) -> str:
         """download model from huggingface and return local dir"""
         if cache_dir is None:
             cache_dir = self._tmpdir.name
-        local_path = snapshot_download(repo_id=repo_id, cache_dir=cache_dir)
-        return local_path
+        if low_disk_usage:
+            local_path = huggingface_hub.snapshot_download(
+                repo_id=repo_id,
+                cache_dir=cache_dir,
+                ignore_patterns="*.bin",
+            )
+            url = huggingface_hub.file_download.hf_hub_url(repo_id, "pytorch_model.bin")
+        else:
+            local_path = huggingface_hub.snapshot_download(
+                repo_id=repo_id, cache_dir=cache_dir
+            )
+            url = ""
+        return local_path, url

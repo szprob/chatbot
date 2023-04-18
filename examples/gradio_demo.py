@@ -13,9 +13,23 @@ def add_text(history, text):
 
 def bot(history):
     prompt = ""
-    for h in history:
+    for i, h in enumerate(history):
         prompt = prompt + "\nHuman: " + h[0]
-        if h[1] is not None:
+        if i != len(history) - 1:
+            prompt = prompt + "\nAssistant: " + h[1]
+        else:
+            prompt = prompt + "\nAssistant: "
+
+    response = model.generate(prompt)
+    history[-1][1] = response
+    return history
+
+
+def regenerate(history):
+    prompt = ""
+    for i, h in enumerate(history):
+        prompt = prompt + "\nHuman: " + h[0]
+        if i != len(history) - 1:
             prompt = prompt + "\nAssistant: " + h[1]
         else:
             prompt = prompt + "\nAssistant: "
@@ -35,8 +49,9 @@ with gr.Blocks() as demo:
             show_label=False,
             placeholder="Enter text and press enter",
         ).style(container=False)
-
-        clear = gr.Button("重新开始吧")
+        with gr.Row():
+            clear = gr.Button("Restart")
+            regen = gr.Button("Regenerate response")
 
         # func
         txt.submit(add_text, [gr_chatbot, txt], [gr_chatbot, txt]).then(
@@ -44,6 +59,7 @@ with gr.Blocks() as demo:
         )
 
         clear.click(lambda: None, None, gr_chatbot, queue=False)
+        regen.click(regenerate, [gr_chatbot], [gr_chatbot])
 
 
 if __name__ == "__main__":

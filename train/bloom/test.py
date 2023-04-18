@@ -61,9 +61,9 @@ if __name__ == "__main__":
 
     model_config = json.load(open("config/model_config.json"))
     # load_in_8bit
-    tokenizer = BloomTokenizerFast.from_pretrained(
-        "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7"
-    )
+
+    model_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7"
+    tokenizer = BloomTokenizerFast.from_pretrained(model_path)
 
     model = BloomForCausalLM.from_pretrained(
         # 'bigscience/bloom-3b',
@@ -74,14 +74,12 @@ if __name__ == "__main__":
         cache_dir="./1b7",
     )
 
+    model_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7"
     model = BloomForCausalLM.from_pretrained(
-        "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7",
-        torch_dtype=torch.float16,
+        model_path,
+        # torch_dtype=torch.float16,
     )
 
-    model.save_pretrained("./tmp")
-
-    model_path = "./chatbot_bloom_1b7/pytorch_model.bin"
     path = "/data/home/ze.song/models/tmp"
     with open(f"{path}/latest", "r") as file:
         name = file.read()

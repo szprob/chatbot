@@ -1,5 +1,8 @@
+import io
 import os
 
+import requests
+import torch
 from transformers import BloomForCausalLM, BloomTokenizerFast
 
 from chatbot.module_utils import PreTrainedModule
@@ -26,7 +29,7 @@ class Bot(PreTrainedModule):
         self.model = None
         self.max_length = 1024
 
-    def load(self, model: str) -> None:
+    def load(self, model: str, low_disk_usage: bool = False) -> None:
         """Load  state dict from huggingface repo or local model path or dict.
 
         Args:
@@ -35,30 +38,34 @@ class Bot(PreTrainedModule):
                 Can be either:
                     path of a pretrained model.
                     model repo.
+            low_disk_usage (bool):
+                If True : model will download state dict file to disk.
+                Only needed when downloading from hub.
+                Defaults to False.
 
         Raises:
             ValueError: str model should be a path!
         """
+        url = ""
         if model in self._PRETRAINED_LIST:
-            model = self.download(model)
+            model, url = self.download(model, low_disk_usage=low_disk_usage)
         if isinstance(model, str):
             if os.path.isdir(model):
-                self._load_from_dir(model)
-            elif os.path.isfile(model):
-                dir = os.path.join(self._tmpdir.name, "chatbot")
-                if os.path.exists(dir):
-                    pass
-                else:
-                    os.mkdir(dir)
-                self._unzip2dir(model, dir)
-                self._load_from_dir(dir)
+                self._load_from_dir(
+                    model_dir=model, url=url, low_disk_usage=low_disk_usage
+                )
             else:
-                raise ValueError("""str model should be a path!""")
+                raise ValueError("""str model should be a dir!""")
 
         else:
-            raise ValueError("""str model should be a path!""")
+            raise ValueError("""str model should be a dir!""")
 
-    def _load_from_dir(self, model_dir: str) -> None:
+    def _load_from_dir(
+        self,
+        model_dir: str,
+        url: str,
+        low_disk_usage: bool = False,
+    ) -> None:
         """Set model params from `model_file`.
 
         Args:
@@ -71,6 +78,17 @@ class Bot(PreTrainedModule):
         if "config.json" not in model_files:
             raise FileNotFoundError("""config should in model dir!""")
 
+        # download model
+        if low_disk_usage:
+            state_dict = torch.load(
+                io.BytesIO(requests.get(url).content), map_location=torch.device("cpu")
+            )
+            self.model = BloomForCausalLM.from_pretrained(
+                pretrained_model_name_or_path=None,
+                state_dict=state_dict,
+                config=f"{model_dir}/config.json",
+            )
+
         # model
         if self.gpu:
             self.model = BloomForCausalLM.from_pretrained(
@@ -78,11 +96,9 @@ class Bot(PreTrainedModule):
             )
             self.model.half()
             self.model.cuda()
-        else:
-            self.model = BloomForCausalLM.from_pretrained(
-                model_dir,
-            )
+
         self.model.eval()
+
         # tokenizer
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_dir)
 
