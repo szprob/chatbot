@@ -26,9 +26,17 @@ pip install git+https://github.com/szprob/chatbot.git
 
 预训练模型全部开源,可以直接下载,也可以直接在代码中读取远端模型.
 
+560m模型:
+
+huggingface : https://huggingface.co/szzzzz/chatbot_bloom_560m
+
 1b7模型:
 
 huggingface : https://huggingface.co/szzzzz/chatbot_bloom_1b7
+
+3b模型:
+
+huggingface : https://huggingface.co/szzzzz/chatbot_bloom_3b
 
 
 ## 数据集
