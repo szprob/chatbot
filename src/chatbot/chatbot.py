@@ -119,7 +119,7 @@ class Bot(PreTrainedModule):
         input_text = self.tokenizer.bos_token + inputs
         input_ids = self.tokenizer.encode(input_text, return_tensors="pt")
         _, input_len = input_ids.shape
-        if input_len >= self.model.config.seq_length - 4:
+        if input_len >= self.max_length - 4:
             res = "对话超过字数限制,请重新开始."
             return res
         if self.gpu:
@@ -132,7 +132,7 @@ class Bot(PreTrainedModule):
             do_sample=True,
             temperature=0.6,
             top_p=0.8,
-            max_new_tokens=self.model.config.seq_length - input_len,
+            max_new_tokens=self.max_length - input_len,
             repetition_penalty=1.2,
         )
         pred = pred_ids[0][input_len:]

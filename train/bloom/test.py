@@ -24,11 +24,11 @@ api.upload_folder(
     # ignore_patterns = "*bin",
 )
 
-file_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_3b/pytorch_model.bin"
+file_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_560m/pytorch_model.bin"
 api.upload_file(
     path_or_fileobj=file_path,
     path_in_repo="pytorch_model.bin",
-    repo_id="szzzzz/chatbot_bloom_3b",
+    repo_id="szzzzz/chatbot_bloom_560m",
     repo_type="model",
 )
 

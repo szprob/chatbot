@@ -2,7 +2,7 @@
 
 中文聊天机器人.
 
-交互的demo部署到了huggingface:
+560m大小的轻量demo部署到了huggingface:
 https://huggingface.co/spaces/szzzzz/chatbot
 
 ## 安装
