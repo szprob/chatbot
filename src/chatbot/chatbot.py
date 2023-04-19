@@ -49,16 +49,16 @@ class Bot(PreTrainedModule):
         url = ""
         if model in self._PRETRAINED_LIST:
             model, url = self.download(model, low_disk_usage=low_disk_usage)
-        if isinstance(model, str):
+            self._load_from_dir(model_dir=model, url=url, low_disk_usage=low_disk_usage)
+        elif isinstance(model, str):
             if os.path.isdir(model):
                 self._load_from_dir(
                     model_dir=model, url=url, low_disk_usage=low_disk_usage
                 )
             else:
                 raise ValueError("""str model should be a dir!""")
-
         else:
-            raise ValueError("""str model should be a dir!""")
+            raise ValueError("""model should be str!""")
 
     def _load_from_dir(
         self,
