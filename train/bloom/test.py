@@ -18,19 +18,22 @@ from transformers import BloomForCausalLM, BloomTokenizerFast
 api = HfApi()
 
 api.upload_folder(
-    folder_path="./chatbot_bloom_1b7",
-    repo_id="szzzzz/chatbot_bloom_1b7",
+    folder_path="/data/home/ze.song/models/chatbot/chatbot_bloom_560m",
+    repo_id="szzzzz/chatbot_bloom_560m",
     repo_type="model",
+    # ignore_patterns = "*bin",
 )
 
+file_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_3b/pytorch_model.bin"
 api.upload_file(
-    path_or_fileobj="./chatbot_bloom_1b7/pytorch_model.bin",
+    path_or_fileobj=file_path,
     path_in_repo="pytorch_model.bin",
-    repo_id="szzzzz/chatbot_bloom_1b7",
+    repo_id="szzzzz/chatbot_bloom_3b",
     repo_type="model",
 )
 
 
+@torch.no_grad()
 def talk(x, tokenizer, model, gpu=True):
     inputs = tokenizer.bos_token + x
     input_ids = tokenizer.encode(inputs, return_tensors="pt")
@@ -62,39 +65,36 @@ if __name__ == "__main__":
     model_config = json.load(open("config/model_config.json"))
     # load_in_8bit
 
-    model_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7"
+    model_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_560m"
     tokenizer = BloomTokenizerFast.from_pretrained(model_path)
 
     model = BloomForCausalLM.from_pretrained(
-        # 'bigscience/bloom-3b',
-        "bigscience/bloom-1b7",
-        # 'bigscience/bloom-560m',
-        torch_dtype=torch.float16,
-        # load_in_8bit=True,
-        cache_dir="./1b7",
+        "bigscience/bloom-3b",
+        # "bigscience/bloomz-7b1-mt",
+        cache_dir="/data/home/ze.song/models/chatbot/3b",
     )
 
-    model_path = "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7"
     model = BloomForCausalLM.from_pretrained(
         model_path,
         # torch_dtype=torch.float16,
     )
 
-    path = "/data/home/ze.song/models/tmp"
+    path = "/data/home/ze.song/models/tmp2"
     with open(f"{path}/latest", "r") as file:
         name = file.read()
-    model_path = f"{path}/{name}/mp_rank_00_model_states.pt"
-    print(model_path)
-    model.load_state_dict(torch.load(model_path, map_location="cpu")["module"])
+    states_path = f"{path}/{name}/mp_rank_00_model_states.pt"
+    print(states_path)
+    model.load_state_dict(torch.load(states_path, map_location="cpu")["module"])
 
     model.half()
     model.to(device)
+    model.save_pretrained("/data/home/ze.song/models/chatbot/tmp")
 
     x = """Human: 把下面这句话翻译成中文 :
         Main hand
 
     Assistant: """
-    x = "Human: 操你妈 . \n\nAssistant: "
+    x = "Human: 你是傻屌吗 . \n\nAssistant: "
     x = "Human: 你是谁 . \n\nAssistant: "
     x = "Human: 什么是bloom模型 . \n\nAssistant: "
     x = "Human: 孔子是谁 . \n\nAssistant: "
@@ -124,4 +124,4 @@ if __name__ == "__main__":
     x = "Human: 南京大屠杀是否存在? \n\nAssistant: "
     x = "Human: 美国是怎么建立的? \n\nAssistant: "
 
-    talk(x, tokenizer, model, gpu=False)  # 1b7
+    talk(x, tokenizer, model, gpu=False)

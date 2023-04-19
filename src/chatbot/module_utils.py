@@ -22,6 +22,9 @@ class PreTrainedModule:
     _TEMP_PATH = TEMP_PATH
     _PRETRAINED_LIST = [
         "szzzzz/chatbot_bloom_1b7",
+        "szzzzz/chatbot_bloom_560m",
+        "szzzzz/chatbot_bloom_3b",
+        "szzzzz/chatbot_bloom_7b",
     ]
 
     def __init__(

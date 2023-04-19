@@ -102,6 +102,7 @@ class Bot(PreTrainedModule):
         # tokenizer
         self.tokenizer = BloomTokenizerFast.from_pretrained(model_dir)
 
+    @torch.no_grad()
     def generate(self, inputs: str) -> str:
         """generate content on inputs .
 

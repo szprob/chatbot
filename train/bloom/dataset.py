@@ -35,13 +35,20 @@ class DataSet(torch.utils.data.Dataset):
 
     def load_data(self, all):
 
-        # 100k
+        #
         alpaca_gpt4 = load_pkl(f"{self.data_path}/alpaca_data_gpt4.pkl")
         cn_alpaca_data = load_pkl(f"{self.data_path}/alpaca_data_gpt4_zh.pkl")
         unnatural = load_pkl(f"{self.data_path}/unnatural_instruction_gpt4_data.pkl")
-
         self.corpus = alpaca_gpt4 + cn_alpaca_data + unnatural
-        self.corpus = self.corpus
+        # for lang in ['en','pt', 'es', 'ca', 'eu', 'gl', 'at']:
+        #     c = load_pkl(f"{self.data_path}/alpaca_data_{lang}.pkl")
+        #     self.corpus = self.corpus + c
+
+        # ru  = load_pkl(f"{self.data_path}/alpaca_data_gpt4_ru.pkl")
+        # es  = load_pkl(f"{self.data_path}/alpaca_data_gpt4_es.pkl")
+        # it  = load_pkl(f"{self.data_path}/alpaca_data_gpt4_it.pkl")
+
+        # self.corpus = self.corpus + ru +es +it
         self.len1 = len(self.corpus)
 
         self.multi = load_pkl(f"{self.data_path}/multiturn_chat_0.8M.pkl", ratio=1)
@@ -50,16 +57,18 @@ class DataSet(torch.utils.data.Dataset):
         self.length = self.len1 + self.len_multi
 
         if all:
-            belle_school = load_pkl(f"{self.data_path}/school_math_0.25M.pkl", ratio=1)
+            belle_school = load_pkl(
+                f"{self.data_path}/school_math_0.25M.pkl", ratio=0.5
+            )
             generated_chat = load_pkl(
-                f"{self.data_path}/generated_chat_0.4M.pkl", ratio=0.5
+                f"{self.data_path}/generated_chat_0.4M.pkl", ratio=0.1
             )
             self.c2 = belle_school + generated_chat
             self.len_c2 = len(self.c2)
 
             # belle500k = load_pkl(f"{self.data_path}/train_0.5M_CN.pkl",ratio=1)
             # belle1m = load_pkl(f"{self.data_path}/train_1M_CN.pkl",ratio=1)
-            belle2m = load_pkl(f"{self.data_path}/train_2M_CN.pkl", ratio=1)
+            belle2m = load_pkl(f"{self.data_path}/train_2M_CN.pkl", ratio=0.25)
             self.c3 = belle2m  # + belle1m + belle500k
             self.len_c3 = len(self.c3)
 
@@ -112,17 +121,17 @@ class DataSet(torch.utils.data.Dataset):
 
         # multi turn data
         else:
-            # try :
-            #     text = data_point[0] + data_point[1]
-            #     text = text.split('\nAssistant:')
-            #     # at least 2 turns
-            #     target_idx = random.randint(2,len(text)-1)
-            #     target_text = text[target_idx].split('\nHuman:')[0]
-            #     input_text = '\nAssistant:'.join(text[:target_idx])
-            #     input_text = input_text + "\nAssistant: "
-            # except ValueError:
-            input_text = data_point[0]
-            target_text = data_point[1]
+            try:
+                text = data_point[0] + data_point[1]
+                text = text.split("\nAssistant:")
+                # at least 2 turns
+                target_idx = random.randint(2, len(text) - 1)
+                target_text = text[target_idx].split("\nHuman:")[0]
+                input_text = "\nAssistant:".join(text[:target_idx])
+                input_text = input_text + "\nAssistant: "
+            except ValueError:
+                input_text = data_point[0]
+                target_text = data_point[1]
 
         if self.tokenizer.bos_token is not None:
             input_text = self.tokenizer.bos_token + input_text

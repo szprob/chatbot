@@ -64,8 +64,8 @@ if __name__ == "__main__":
     # model
     model = BloomForCausalLM.from_pretrained(
         # 'bigscience/bloom-3b',
-        "bigscience/bloom-1b7",
-        # 'bigscience/bloom-560m',
+        # "bigscience/bloom-1b7",
+        "bigscience/bloom-560m",
     )
     print("Total Parameters:", sum([p.nelement() for p in model.parameters()]))
 
@@ -110,16 +110,16 @@ if __name__ == "__main__":
                 )
                 print(log)
 
-            if i == 3000:
+            if i == 8888:
                 print("save model")
-                model_engine.save_checkpoint(model_config["output_dir"], tag=i)
+                model_engine.save_checkpoint(model_config["output_dir"])
                 print("save model finished")
 
-            if i % 20001 == 20000:
+            if i % 40001 == 40000:
                 print("save model")
-                model_engine.save_checkpoint(model_config["output_dir"], tag=i)
+                model_engine.save_checkpoint(model_config["output_dir"])
                 print("save model finished")
 
         print("save model")
-        model_engine.save_checkpoint(model_config["output_dir"], tag=i)
+        model_engine.save_checkpoint(model_config["output_dir"])
         print("save model finished")
