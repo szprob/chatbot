@@ -1,0 +1,19 @@
+{
+    "model_type": "bloom",
+    "model_name_or_path": "/workspace/models/chatbot/reward_model",
+    "data_path": "/workspace/data/corpus/reward",
+    "output_dir": "/workspace/models/tmp2",
+    "max_length": 1024,
+    "val_set_size": 1000,
+    "val_set_rate": 0.1,
+    "save_steps": 1000,
+    "eval_steps":1000,
+    "warmup_steps":100,
+    "logging_steps":10,
+    "gradient_accumulation_steps":16,
+    "unk_token_id":0,
+    "bos_token_id":1,
+    "eos_token_id":2,
+    "pad_token_id":3,
+    "padding_side":"right"
+}

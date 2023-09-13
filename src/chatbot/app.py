@@ -4,12 +4,12 @@ from transformers import BloomForCausalLM, BloomTokenizerFast
 
 device = torch.device("cuda:0")
 tokenizer = BloomTokenizerFast.from_pretrained(
-    "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7",
+    "/data/home/ze.song/models/chatbot/chatbot_bloom_3b",
 )
 
 model = BloomForCausalLM.from_pretrained(
-    "/data/home/ze.song/models/chatbot/chatbot_bloom_1b7",
-    torch_dtype=torch.float16,
+    "/data/home/ze.song/models/chatbot/chatbot_bloom_3b",
+    # torch_dtype=torch.float16,
 )
 
 model.half()
@@ -36,6 +36,7 @@ def talk(x, tokenizer, model, gpu=True):
         temperature=0.6,
         top_p=0.8,
         max_new_tokens=max_length - input_len,
+        min_new_tokens=10,
         repetition_penalty=1.2,
     )
     pred = pred_ids[0][input_len:]

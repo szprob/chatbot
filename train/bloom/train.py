@@ -6,18 +6,24 @@ Created on 20230109
 """
 import json
 import os
+import shutil
+from glob import glob
+from itertools import chain
+from pathlib import Path
 
 import dataset
+import pandas as pd
 
 # import nets
 import torch
 import torch.distributed as dist
 import trainer
 from torch import nn
+from tqdm import tqdm
 from transformers import BloomForCausalLM, BloomTokenizerFast
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2"
     # ddp setting
     local_rank = int(os.environ["LOCAL_RANK"])
     dist.init_process_group(backend="nccl")
